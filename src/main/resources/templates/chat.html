@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body class="bg-base-200 min-h-screen">
+    <h1 class="text-center font-bold text-4xl mb-5">Real-Time Global Chat</h1>
+    <div class="flex justify-center">
+        <div class="flex flex-col min-h-[450px] max-h-[450px] w-9/12 overflow-y-auto border border-base rounded-lg bg-base-100">
+            <div class="chat chat-end flex-grow">
+                <div id="chat" class="chat-bubble">You underestimate my power!</div>
+            </div>
+        </div>
+    </div>
+    <div class="absolute bottom-0 p-5 w-full flex justify-center">
+        <div class="grid md:grid-cols-3 sm:grid-cols-1 bg-base-100 rounded-lg shadow-sm">
+            <div class="input-group flex flex-row gap-5 px-7 py-5">
+                <input id="senderInput" type="text" placeholder="Your Name" class="form-control flex-grow input input-bordered input-primary w-full min-w-screen">
+            </div>
+            <div class="col-span-2 input-group flex flex-row gap-5 px-7 py-5">
+                <input id="messageInput" type="text" placeholder="Type message here" class="form-control flex-grow input input-bordered input-primary w-full min-w-screen">
+                <button id="sendMessage" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function setConnected(connected){
+            document.getElementById('sendMessage').disabled
+        }
+
+        function connect(){
+            var socket = new SocketJS('/chat');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame){
+                setConnected(true);
+                stompClient.subscribe('', function (message){
+                    showMessage(JSON.parse(message.body));
+                });
+            });
+        }
+
+        function showMessage(message){
+            var chat = document.getElementById('chat');
+            var messageElement = document.createElement('div');
+            messageElement.textContent = message.sender + " : " + message.content;
+            messageElement.class = "border-bottom mb-1";
+            chat.appendChild(messageElement)
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function sendMessage(){
+            var sender = document.getElementById('senderInput').value;
+            var content = document.getElementById('messageInput').value;
+            var chatMessage = {
+                sender : sender,
+                content : content
+            }
+            stompClient.send("/app/sendMessage", {}, JSON.stringify(chatMessage));
+            document.getElementById('messageInput').value = '';
+        }
+
+        document.getElementById('sendMessage').onclick = sendMessage;
+    </script>
+</body>
+</html>
